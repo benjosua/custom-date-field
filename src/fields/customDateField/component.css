@@ -1,3 +1,7 @@
 .react-datepicker__day--highlighted {
     background-color: rgb(255, 111, 118) !important;
   }
+
+  .field-description {
+    color: rgb(255, 111, 118) !important;
+}

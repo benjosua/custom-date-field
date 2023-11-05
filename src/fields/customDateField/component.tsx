@@ -24,27 +24,32 @@ export const CustomDateComponent: React.FC<Props> = (props) => {
     .filter(Boolean)
     .join(" ");
 
+  const getEventsForSelectedDay = () => {
+    const selectedDate = value instanceof Date ? value : new Date(); // Ensure it's a Date object
+    if (selectedDate instanceof Date) {
+      const eventsForSelectedDay = eventsData.filter((event) => {
+        const eventDate = new Date(event.customDate);
+        return (
+          eventDate.getDate() === selectedDate.getDate() &&
+          eventDate.getMonth() === selectedDate.getMonth() &&
+          eventDate.getFullYear() === selectedDate.getFullYear()
+        );
+      });
+      return eventsForSelectedDay;
+    }
+    return [];
+  };
+
   useEffect(() => {
     // Fetch events data on component mount
     const fetchEventsData = async () => {
       try {
-        const response = await fetch(
-          // `${process.env.PAYLOAD_PUBLIC_SERVER_URL}/api/examples`
-          "http://localhost:3000/api/examples"
-        );
-
-        console.log(response);
-
+        const response = await fetch("http://localhost:3000/api/examples");
         const data = await response.json();
-        console.log(data);
-
-
         setEventsData(data.docs);
-
         const times = data.docs.map((doc) => new Date(doc.customDate));
         setOptions(times);
       } catch (error) {
-        // eslint-disable-next-line no-console
         console.error("Error fetching data:", error);
       }
     };
@@ -52,43 +57,7 @@ export const CustomDateComponent: React.FC<Props> = (props) => {
     fetchEventsData();
   }, []);
 
-  const formatTime = (date) =>
-    date.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
-
-  const renderDayContents = (day, date) => {
-    // Filter events for the specified day
-    const eventsForDay = eventsData.filter((event) => {
-      const eventDate = new Date(event.end);
-      return (
-        eventDate.getDate() === date.getDate() &&
-        eventDate.getMonth() === date.getMonth() &&
-        eventDate.getFullYear() === date.getFullYear()
-      );
-    });
-
-    // Create tooltip text with event titles, start times, and end times
-    let tooltipText = `Events on ${date.toLocaleDateString()}:`;
-
-    if (eventsForDay.length > 0) {
-      eventsForDay.forEach((event) => {
-        tooltipText += `\n- ${event.title} (Start: ${formatTime(
-          new Date(event.start)
-        )}, End: ${formatTime(new Date(event.end))})`;
-      });
-    } else {
-      tooltipText += "\nNo events on this day";
-    }
-
-    const highlightedDayStyle = {
-      backgroundColor: "rgb(255, 111, 118) !important",
-    };
-
-    return (
-      <span title={tooltipText} style={highlightedDayStyle}>
-        {date.getDate()}
-      </span>
-    );
-  };
+  const warningMessage = getEventsForSelectedDay().length > 0 ? `WARNING! There are ${getEventsForSelectedDay().length} other events on this day: ${getEventsForSelectedDay().map((event) => `${event.title} (Date: ${new Date(event.customDate).toLocaleString()})`).join(', ')}` : '';
 
   return (
     <div className={classes}>
@@ -99,7 +68,6 @@ export const CustomDateComponent: React.FC<Props> = (props) => {
         datePickerProps={{
           overrides: {
             highlightDates: options,
-            renderDayContents: renderDayContents,
           },
           pickerAppearance: "dayAndTime",
           timeIntervals: 15,
@@ -109,6 +77,9 @@ export const CustomDateComponent: React.FC<Props> = (props) => {
         value={value && new Date(value)}
         onChange={(e) => setValue(e)}
         required={true}
+        description={
+          (value ? `\n${warningMessage}` : "")
+        }
       />
     </div>
   );
